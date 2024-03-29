@@ -10,6 +10,8 @@ String geoapikey = "pk.0019b9fa96c63f1a39ae09a92ca67231";
 const char* Host = "www.unwiredlabs.com";
 String endpoint = "/v2/process.php";
 String jsonString = "{\n";
+TaskHandle_t ip_handle = NULL;
+float lat, lon;
 
 #define RX 18
 #define TX 17
@@ -48,7 +50,7 @@ void getIp()
   }
   http.end();
 }
-/*
+
 void getLocation()
 {
   // now build the jsonString...
@@ -66,7 +68,7 @@ void getLocation()
 
   WiFiClient client;
   std::string stemp;
-  std::vector<std::string> tokens;
+  //std::vector<std::string> tokens;
 
   // Connect to the client and make the api call
   Serial.println("Requesting URL: http://" + (String)Host + endpoint);
@@ -91,25 +93,33 @@ void getLocation()
     String line = client.readStringUntil('\r');
     JSONVar myObject = JSON.parse(line);
 
-    if (JSON.typeof(myObject) != "undefined" && myObject.hasOwnProperty("address"))
+    if (JSON.typeof(myObject) != "undefined" && myObject.hasOwnProperty("lat") && myObject.hasOwnProperty("lon"))
     {
-      Serial.print("JSON object = ");
-      Serial.println(myObject);
+      //Serial.print("JSON object = ");
+      //Serial.println(myObject);
       Serial.print("My address: ");
       Serial.println(myObject["address"]);
       stemp = (const char *) myObject["address"];
-      tokens = tokenize(stemp,',');
-      city = tokens[0].c_str();
-      city.trim();
-      countryCode = tokens[3].c_str();
-      countryCode.trim(); 
-      zipCode = tokens[4].c_str();
-      zipCode.trim();
+      lat =(double) myObject["lat"];
+      lon =(double) myObject["lon"];
+      Serial.print("Latitude: ");
+      Serial.println(lat);
+      Serial.print("Longitude: ");
+      Serial.println(lon);
+
+//      tokens = tokenize(stemp,',');
+ //     city = tokens[0].c_str();
+ //     city.trim();
+ //     countryCode = tokens[3].c_str();
+  //    countryCode.trim(); 
+  //    zipCode = tokens[4].c_str();
+ //     zipCode.trim();
     }
   }
   client.stop();
 }
 
+/*
 void getWeather(){
 String serverPath = "http://api.openweathermap.org/data/2.5/weather?q=" + city + "," + countryCode + "&APPID=" + apikeyweather; 
 String jsonBuffer;
@@ -253,6 +263,18 @@ void gps_stuff(){
     Serial.println(F("No GPS data received: check wiring"));
 }
 
+void get_ip(void * parameters){
+  unsigned long now = 0;
+  while(true){
+    if(millis()-now > 60*1000){
+      now = millis();
+      getIp();
+    }
+    else
+      vTaskDelay(5*1000/portTICK_PERIOD_MS);
+  }
+}
+
 void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.begin("NETGEAR23","rustictree335");
@@ -268,12 +290,14 @@ void setup() {
   Serial.print("IP address: ");
   Serial.print(WiFi.localIP());
   initTime("EST5EDT,M3.2.0,M11.1.0");
+  getIp();
+  xTaskCreate(get_ip,"get_ip",10*1024,NULL,tskIDLE_PRIORITY,&ip_handle);
+  delay(5000);
+  Serial.println("getLocation() function:");
+  getLocation();
 }
 
 void loop() {
-  gps_stuff();
-  //printLocalTime();
-  delay(2000);
 }
 
 /*
