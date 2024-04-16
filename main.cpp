@@ -18,6 +18,8 @@ float lat, lon;
 #define TX 17
 TinyGPSPlus gps;
 
+struct tm timeinfo;
+
 /* Getting ip, location and weather from the internet */
 void getIp()
 {
@@ -170,7 +172,6 @@ void setTimezone(String timezone)
 
 void initTime(String timezone)
 {
-  struct tm timeinfo;
   unsigned long elapse = millis();
   Serial.println("Setting up time");
   configTime(0, 0, "pool.ntp.org"); // First connect to NTP server, with 0 TZ offset
@@ -198,7 +199,6 @@ void initTime(String timezone)
 
 void printLocalTime()
 {
-  struct tm timeinfo;
   if (!getLocalTime(&timeinfo))
   {
     Serial.println("Failed to obtain time 1");
@@ -297,16 +297,18 @@ void get_ip(void *parameters)
   }
 }
 
-void solar_calculations(struct tm timeinfo, String timezone){
-  double timezone_double = timezone;
+void solar_calculations(String timezone){
+  Serial.println(timezone);
+  //double timezone_double = timezone;
   double frac_year = ((2*M_PI)/365.0)*(timeinfo.tm_yday-1+((timeinfo.tm_hour-12)/24));
   double time_equation = 229.18*(0.000075 + 0.001868*cos(frac_year) - 0.032077*sin(frac_year) - 0.014615*cos(2*frac_year) - 0.040849*sin(2*frac_year));
   double declination_angle = 0.006918- 0.399912*cos(frac_year) + 0.070257*sin(frac_year) - 0.006758*cos(2*frac_year) + 0.000907*sin(2*frac_year) - 0.002697*cos(3*frac_year) + 0.00148*sin(3*frac_year);
-  double time_offset = time_equation + 4 * lon - 60 * timezone;
-  double tst = timeinfo.tm_hour * 60 + timeinfo.tm_min + timeinfo.tm_sec/60 + time_offset;
+  //double time_offset = time_equation + 4 * lon - 60 * timezone;
+  //double tst = timeinfo.tm_hour * 60 + timeinfo.tm_min + timeinfo.tm_sec/60 + time_offset;
   double solar_hour_angle = acos(((cos(90.833))/(cos(lat)*cos(declination_angle)))-(tan(lat)*tan(declination_angle)));
   double sunrise_or_set = 720 - 4*(lon + solar_hour_angle) - time_equation;
   double solar_noon = 720 - 4*lon - time_equation;
+  Serial.println()
 }
 
 void setup()
@@ -332,7 +334,7 @@ void setup()
   delay(5000);
   Serial.println("getLocation() function:");
   getLocation();
-  solar_calculations();
+  solar_calculations("EST5EDT");
 }
 
 void loop()
